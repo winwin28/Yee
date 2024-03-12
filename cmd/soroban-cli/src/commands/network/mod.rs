@@ -172,7 +172,6 @@ impl Network {
         if self.network_passphrase.as_str() == LOCAL_NETWORK_PASSPHRASE {
             let auth = rpc_uri.authority().unwrap().clone();
             let scheme = rpc_uri.scheme_str().unwrap();
-            // format!("{scheme}://{auth}/friendbot");
             Ok(Uri::builder()
                 .authority(auth)
                 .scheme(scheme)
