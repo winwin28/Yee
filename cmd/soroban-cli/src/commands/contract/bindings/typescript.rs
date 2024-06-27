@@ -4,6 +4,7 @@ use clap::{command, Parser};
 use soroban_spec_tools::contract as contract_spec;
 use soroban_spec_typescript::{self as typescript, boilerplate::Project};
 use stellar_strkey::DecodeError;
+use which::which;
 
 use crate::wasm;
 use crate::{
@@ -65,7 +66,7 @@ pub enum Error {
     Spec(#[from] contract_spec::Error),
     #[error(transparent)]
     Wasm(#[from] wasm::Error),
-    #[error("Failed to get file name from path: {0:?}")]
+    #[error("failed to get file name from path: {0:?}")]
     FailedToGetFileName(PathBuf),
     #[error("cannot parse contract ID {0}: {1}")]
     CannotParseContractId(String, DecodeError),
@@ -73,6 +74,8 @@ pub enum Error {
     UtilsError(#[from] get_spec::Error),
     #[error(transparent)]
     Config(#[from] config::Error),
+    #[error("unable to find executable: {0}")]
+    Which(String),
 }
 
 #[async_trait::async_trait]
@@ -144,6 +147,9 @@ impl NetworkRunnable for Cmd {
             &network_passphrase,
             &spec,
         )?;
+
+        which("npm").map_err(|_| Error::Which("npm".to_string()))?;
+
         std::process::Command::new("npm")
             .arg("install")
             .current_dir(&self.output_dir)
