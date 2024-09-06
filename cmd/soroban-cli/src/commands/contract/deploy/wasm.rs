@@ -91,7 +91,7 @@ pub enum Error {
         wasm_hash: String,
         error: stellar_strkey::DecodeError,
     },
-    #[error("Must provide either --wasm or --wash-hash")]
+    #[error("must provide either --wasm or --wash-hash")]
     WasmNotProvided,
     #[error(transparent)]
     Rpc(#[from] rpc::Error),

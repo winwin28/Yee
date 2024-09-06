@@ -7,7 +7,7 @@ use crate::{utils, Root};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Plugin not provided. Should be `stellar plugin` for a binary `stellar-plugin`")]
+    #[error("plugin not provided. Should be `stellar plugin` for a binary `stellar-plugin`")]
     MissingSubcommand,
     #[error(transparent)]
     IO(#[from] std::io::Error),

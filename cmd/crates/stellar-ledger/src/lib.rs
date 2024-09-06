@@ -51,19 +51,19 @@ const RETURN_CODE_OK: u16 = 36864; // APDUAnswer.retcode which means success fro
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Error occurred while initializing HIDAPI: {0}")]
+    #[error("error occurred while initializing HIDAPI: {0}")]
     HidApiError(#[from] HidError),
 
-    #[error("Error occurred while initializing Ledger HID transport: {0}")]
+    #[error("error occurred while initializing Ledger HID transport: {0}")]
     LedgerHidError(#[from] LedgerHIDError),
 
-    #[error("Error with ADPU exchange with Ledger device: {0}")]
+    #[error("error with ADPU exchange with Ledger device: {0}")]
     APDUExchangeError(String),
 
-    #[error("Error occurred while exchanging with Ledger device: {0}")]
+    #[error("error occurred while exchanging with Ledger device: {0}")]
     LedgerConnectionError(String),
 
-    #[error("Error occurred while parsing BIP32 path: {0}")]
+    #[error("error occurred while parsing BIP32 path: {0}")]
     Bip32PathError(String),
 
     #[error(transparent)]

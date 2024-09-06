@@ -85,7 +85,7 @@ pub enum Error {
     NoContractDataEntryFoundForContractID,
     #[error(transparent)]
     Key(#[from] key::Error),
-    #[error("Only contract data and code keys are allowed")]
+    #[error("only contract data and code keys are allowed")]
     OnlyDataAllowed,
     #[error(transparent)]
     Locator(#[from] locator::Error),

@@ -22,43 +22,43 @@ use super::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Failed to find home directory")]
+    #[error("failed to find home directory")]
     HomeDirNotFound,
-    #[error("Failed read current directory")]
+    #[error("failed read current directory")]
     CurrentDirNotFound,
-    #[error("Failed read current directory and no SOROBAN_CONFIG_HOME is set")]
+    #[error("failed read current directory and no SOROBAN_CONFIG_HOME is set")]
     NoConfigEnvVar,
-    #[error("Failed to create directory: {path:?}")]
+    #[error("failed to create directory: {path:?}")]
     DirCreationFailed { path: PathBuf },
-    #[error("Failed to read secret's file: {path}.\nProbably need to use `stellar keys add`")]
+    #[error("failed to read secret's file: {path}.\nProbably need to use `stellar keys add`")]
     SecretFileRead { path: PathBuf },
-    #[error("Failed to read network file: {path};\nProbably need to use `stellar network add`")]
+    #[error("failed to read network file: {path};\nProbably need to use `stellar network add`")]
     NetworkFileRead { path: PathBuf },
     #[error(transparent)]
     Toml(#[from] toml::de::Error),
-    #[error("Secret file failed to deserialize")]
+    #[error("secret file failed to deserialize")]
     Deserialization,
-    #[error("Failed to write identity file:{filepath}: {error}")]
+    #[error("failed to write identity file:{filepath}: {error}")]
     IdCreationFailed { filepath: PathBuf, error: io::Error },
-    #[error("Secret file failed to deserialize")]
+    #[error("secret file failed to deserialize")]
     NetworkDeserialization,
-    #[error("Failed to write network file: {0}")]
+    #[error("failed to write network file: {0}")]
     NetworkCreationFailed(std::io::Error),
-    #[error("Error Identity directory is invalid: {name}")]
+    #[error("error Identity directory is invalid: {name}")]
     IdentityList { name: String },
-    // #[error("Config file failed to deserialize")]
+    // #[error("config file failed to deserialize")]
     // CannotReadConfigFile,
-    #[error("Config file failed to serialize")]
+    #[error("config file failed to serialize")]
     ConfigSerialization,
-    // #[error("Config file failed write")]
+    // #[error("config file failed write")]
     // CannotWriteConfigFile,
     #[error("XDG_CONFIG_HOME env variable is not a valid path. Got {0}")]
     XdgConfigHome(String),
     #[error(transparent)]
     Io(#[from] std::io::Error),
-    #[error("Failed to remove {0}: {1}")]
+    #[error("failed to remove {0}: {1}")]
     ConfigRemoval(String, String),
-    #[error("Failed to find config {0} for {1}")]
+    #[error("failed to find config {0} for {1}")]
     ConfigMissing(String, String),
     #[error(transparent)]
     String(#[from] std::string::FromUtf8Error),
@@ -72,9 +72,9 @@ pub enum Error {
     CannotAccessAliasConfigFile,
     #[error("cannot parse contract ID {0}: {1}")]
     CannotParseContractId(String, DecodeError),
-    #[error("Failed to read upgrade check file: {path}: {error}")]
+    #[error("failed to read upgrade check file: {path}: {error}")]
     UpgradeCheckReadFailed { path: PathBuf, error: io::Error },
-    #[error("Failed to write upgrade check file: {path}: {error}")]
+    #[error("failed to write upgrade check file: {path}: {error}")]
     UpgradeCheckWriteFailed { path: PathBuf, error: io::Error },
 }
 

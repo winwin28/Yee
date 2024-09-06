@@ -16,10 +16,10 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum LedgerZemuError {
     /// zemu reponse error
-    #[error("Zemu response error")]
+    #[error("zemu response error")]
     ResponseError,
     /// Inner error
-    #[error("Ledger inner error")]
+    #[error("ledger inner error")]
     InnerError,
 }
 

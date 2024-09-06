@@ -12,15 +12,15 @@ use soroban_env_host::xdr::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Contract addresses are not supported to sign auth entries {address}")]
+    #[error("contract addresses are not supported to sign auth entries {address}")]
     ContractAddressAreNotSupported { address: String },
     #[error(transparent)]
     Ed25519(#[from] ed25519_dalek::SignatureError),
-    #[error("Missing signing key for account {address}")]
+    #[error("missing signing key for account {address}")]
     MissingSignerForAddress { address: String },
     #[error(transparent)]
     TryFromSlice(#[from] std::array::TryFromSliceError),
-    #[error("User cancelled signing, perhaps need to add -y")]
+    #[error("user cancelled signing, perhaps need to add -y")]
     UserCancelledSigning,
     #[error(transparent)]
     Xdr(#[from] xdr::Error),

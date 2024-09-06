@@ -63,7 +63,7 @@ pub enum Error {
     Spec(#[from] contract_spec::Error),
     #[error(transparent)]
     Wasm(#[from] wasm::Error),
-    #[error("Failed to get file name from path: {0:?}")]
+    #[error("failed to get file name from path: {0:?}")]
     FailedToGetFileName(PathBuf),
     #[error("cannot parse contract ID {0}: {1}")]
     CannotParseContractId(String, DecodeError),

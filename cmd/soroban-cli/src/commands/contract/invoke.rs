@@ -112,7 +112,7 @@ pub enum Error {
     Clap(#[from] clap::Error),
     #[error(transparent)]
     Locator(#[from] locator::Error),
-    #[error("Contract Error\n{0}: {1}")]
+    #[error("contract Error\n{0}: {1}")]
     ContractInvoke(String, String),
     #[error(transparent)]
     StrKey(#[from] stellar_strkey::DecodeError),

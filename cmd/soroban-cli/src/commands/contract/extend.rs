@@ -70,7 +70,7 @@ pub enum Error {
     KeyIsRequired,
     #[error("xdr processing error: {0}")]
     Xdr(#[from] XdrError),
-    #[error("Ledger entry not found")]
+    #[error("ledger entry not found")]
     LedgerEntryNotFound,
     #[error("missing operation result")]
     MissingOperationResult,

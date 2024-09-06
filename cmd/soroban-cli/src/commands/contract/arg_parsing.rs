@@ -39,7 +39,7 @@ pub enum Error {
     Xdr(#[from] xdr::Error),
     #[error(transparent)]
     StrVal(#[from] soroban_spec_tools::Error),
-    #[error("Missing argument {0}")]
+    #[error("missing argument {0}")]
     MissingArgument(String),
     #[error("")]
     MissingFileArg(PathBuf),

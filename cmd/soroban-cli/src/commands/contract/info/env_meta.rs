@@ -25,7 +25,7 @@ pub enum Error {
     Wasm(#[from] shared::Error),
     #[error(transparent)]
     Spec(#[from] contract::Error),
-    #[error("Stellar asset contract doesn't contain meta information")]
+    #[error("stellar asset contract doesn't contain meta information")]
     NoSACEnvMeta(),
     #[error("no meta present in provided WASM file")]
     NoEnvMetaPresent(),

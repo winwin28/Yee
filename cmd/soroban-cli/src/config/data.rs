@@ -8,7 +8,7 @@ use crate::xdr::{self, WriteXdr};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Failed to find project directories")]
+    #[error("failed to find project directories")]
     FailedToFindProjectDirs,
     #[error(transparent)]
     Io(#[from] std::io::Error),
