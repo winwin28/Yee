@@ -1,7 +1,5 @@
-pub mod asset;
 pub mod transaction;
 
-pub use asset::Asset;
 pub use transaction::TxExt;
 
 #[derive(thiserror::Error, Debug)]

@@ -57,12 +57,11 @@ impl Cmd {
             if let Some(alias) = path.file_stem() {
                 let alias = alias.to_string_lossy().into_owned();
                 let content = fs::read_to_string(path)?;
-                let data: alias::Data = serde_json::from_str(&content).unwrap_or_default();
+                let data: alias::Aliases = serde_json::from_str(&content).unwrap_or_default();
 
-                for network_passphrase in data.ids.keys() {
+                for network_passphrase in data.keys() {
                     let network_passphrase = network_passphrase.to_string();
                     let contract = data
-                        .ids
                         .get(&network_passphrase)
                         .map(ToString::to_string)
                         .unwrap_or_default();

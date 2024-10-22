@@ -246,7 +246,7 @@ impl Args {
         KeyType::Network.remove(name, &self.config_dir()?)
     }
 
-    fn load_contract_from_alias(&self, alias: &str) -> Result<Option<alias::Data>, Error> {
+    fn load_contract_from_alias(&self, alias: &str) -> Result<Option<alias::Aliases>, Error> {
         let path = self.alias_path(alias)?;
 
         if !path.exists() {
@@ -254,7 +254,7 @@ impl Args {
         }
 
         let content = fs::read_to_string(path)?;
-        let data: alias::Data = serde_json::from_str(&content).unwrap_or_default();
+        let data: alias::Aliases = serde_json::from_str(&content).unwrap_or_default();
 
         Ok(Some(data))
     }
@@ -277,7 +277,7 @@ impl Args {
         create_dir_all(dir).map_err(|_| Error::CannotAccessConfigDir)?;
 
         let content = fs::read_to_string(&path).unwrap_or_default();
-        let mut data: alias::Data = serde_json::from_str(&content).unwrap_or_default();
+        let mut data: alias::Aliases = serde_json::from_str(&content).unwrap_or_default();
 
         let mut to_file = OpenOptions::new()
             .create(true)
@@ -285,8 +285,7 @@ impl Args {
             .write(true)
             .open(path)?;
 
-        data.ids
-            .insert(network_passphrase.into(), contract_id.to_string());
+        data.insert(network_passphrase.into(), contract_id.to_string());
 
         let content = serde_json::to_string(&data)?;
 
@@ -301,7 +300,7 @@ impl Args {
         }
 
         let content = fs::read_to_string(&path).unwrap_or_default();
-        let mut data: alias::Data = serde_json::from_str(&content).unwrap_or_default();
+        let mut data: alias::Aliases = serde_json::from_str(&content).unwrap_or_default();
 
         let mut to_file = OpenOptions::new()
             .create(true)
@@ -309,7 +308,7 @@ impl Args {
             .write(true)
             .open(path)?;
 
-        data.ids.remove::<str>(network_passphrase);
+        data.remove(network_passphrase);
 
         let content = serde_json::to_string(&data)?;
 
@@ -325,7 +324,7 @@ impl Args {
             return Ok(None);
         };
 
-        Ok(alias_data.ids.get(network_passphrase).cloned())
+        Ok(alias_data.get(network_passphrase).cloned())
     }
 
     pub fn resolve_contract_id(

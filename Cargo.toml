@@ -35,6 +35,7 @@ path = "./cmd/crates/soroban-spec-tools"
 # Dependencies from the rs-stellar-xdr repo:
 [workspace.dependencies.stellar-xdr]
 version = "=22.0.0-rc.1.1"
+path = "../rs-stellar-xdr"
 default-features = true
 
 # Dependencies from the rs-soroban-sdk repo:

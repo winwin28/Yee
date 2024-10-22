@@ -1,6 +1,6 @@
 use clap::{command, Parser};
 
-use crate::{commands::tx, tx::builder, xdr};
+use crate::{commands::tx, xdr};
 
 #[derive(Parser, Debug, Clone)]
 #[group(skip)]
@@ -12,7 +12,7 @@ pub struct Cmd {
     pub destination: xdr::MuxedAccount,
     /// Asset to send, default native, e.i. XLM
     #[arg(long, default_value = "native")]
-    pub asset: builder::Asset,
+    pub asset: xdr::Asset,
     /// Amount of the aforementioned asset to send.
     #[arg(long)]
     pub amount: i64,

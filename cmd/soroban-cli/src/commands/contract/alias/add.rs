@@ -13,7 +13,7 @@ pub struct Cmd {
     pub config_locator: locator::Args,
 
     #[command(flatten)]
-    network: network::Args,
+    pub network: network::Args,
 
     /// The contract alias that will be removed.
     pub alias: String,

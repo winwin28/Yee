@@ -34,13 +34,13 @@ impl Cmd {
             .map_err(|_| Error::CannotParseSalt(self.salt.clone()))?
             .try_into()
             .map_err(|_| Error::CannotParseSalt(self.salt.clone()))?;
-        let source_account = match self.config.source_account()? {
-            xdr::MuxedAccount::Ed25519(uint256) => stellar_strkey::ed25519::PublicKey(uint256.0),
-            xdr::MuxedAccount::MuxedEd25519(_) => return Err(Error::OnlyEd25519AccountsAllowed),
-        };
-        let contract_id_preimage = contract_preimage(&source_account, salt);
+        // let source_account = match self.config.source_account()? {
+        //     xdr::MuxedAccount::Ed25519(uint256) => stellar_strkey::ed25519::PublicKey(uint256.0),
+        //     xdr::MuxedAccount::MuxedEd25519(_) => return Err(Error::OnlyEd25519AccountsAllowed),
+        // };
+        let contract_id_preimage = contract_preimage(source_account.try_into()?, salt.into());
         let contract_id = get_contract_id(
-            contract_id_preimage.clone(),
+            contract_id_preimage,
             &self.config.get_network()?.network_passphrase,
         )?;
         println!("{contract_id}");
@@ -49,13 +49,12 @@ impl Cmd {
 }
 
 pub fn contract_preimage(
-    key: &stellar_strkey::ed25519::PublicKey,
-    salt: [u8; 32],
+    address: &ScAddress,
+    salt: Hash,
 ) -> ContractIdPreimage {
-    let source_account = AccountId(PublicKey::PublicKeyTypeEd25519(key.0.into()));
     ContractIdPreimage::Address(ContractIdPreimageFromAddress {
-        address: ScAddress::Account(source_account),
-        salt: Uint256(salt),
+        address,
+        salt,
     })
 }
 
@@ -63,13 +62,10 @@ pub fn get_contract_id(
     contract_id_preimage: ContractIdPreimage,
     network_passphrase: &str,
 ) -> Result<stellar_strkey::Contract, Error> {
-    let network_id = Hash(Sha256::digest(network_passphrase.as_bytes()).into());
-    let preimage = HashIdPreimage::ContractId(HashIdPreimageContractId {
+    let network_id = network_passphrase.into();
+    HashIdPreimage::ContractId(HashIdPreimageContractId {
         network_id,
         contract_id_preimage,
-    });
-    let preimage_xdr = preimage.to_xdr(Limits::none())?;
-    Ok(stellar_strkey::Contract(
-        Sha256::digest(preimage_xdr).into(),
-    ))
+    })
+    .try_into()
 }
