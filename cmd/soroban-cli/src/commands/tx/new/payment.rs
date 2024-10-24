@@ -19,11 +19,18 @@ pub struct Cmd {
 }
 
 impl From<&Cmd> for xdr::OperationBody {
-    fn from(cmd: &Cmd) -> Self {
+    fn from(
+        Cmd {
+            destination,
+            asset,
+            amount,
+            ..
+        }: &Cmd,
+    ) -> Self {
         xdr::OperationBody::Payment(xdr::PaymentOp {
-            destination: cmd.destination.clone(),
-            asset: cmd.asset.clone().into(),
-            amount: cmd.amount,
+            destination: destination.into(),
+            asset: asset.into(),
+            amount: *amount,
         })
     }
 }

@@ -1,12 +1,11 @@
 use crate::xdr::{self, Hash, LedgerKey, LedgerKeyContractCode};
 use clap::arg;
-use sha2::{Digest, Sha256};
 use soroban_spec_tools::contract::{self, Spec};
 use std::{
     fs, io,
     path::{Path, PathBuf},
 };
-use stellar_xdr::curr::{ContractDataEntry, ContractExecutable, ScVal};
+use stellar_xdr::curr::{ContractDataEntry, ContractExecutable, HashBytes, ScVal};
 
 use crate::{
     config::{
@@ -90,7 +89,7 @@ impl Args {
     }
 
     pub fn hash(&self) -> Result<Hash, Error> {
-        Ok(Hash(Sha256::digest(self.read()?).into()))
+        Ok(Hash::hash_bytes(self.read()?))
     }
 }
 

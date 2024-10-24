@@ -1,16 +1,13 @@
 use clap::{arg, command, Parser};
 
-use crate::config;
-
-use crate::tx::builder;
-use crate::utils::contract_id_hash_from_asset;
+use crate::{config, xdr};
 
 #[derive(Parser, Debug, Clone)]
 #[group(skip)]
 pub struct Cmd {
     /// ID of the Stellar classic asset to wrap, e.g. "USDC:G...5"
     #[arg(long)]
-    pub asset: builder::Asset,
+    pub asset: xdr::Asset,
 
     #[command(flatten)]
     pub config: config::ArgsLocatorAndNetwork,
@@ -20,7 +17,7 @@ pub enum Error {
     #[error(transparent)]
     ConfigError(#[from] config::Error),
     #[error(transparent)]
-    Xdr(#[from] crate::xdr::Error),
+    Xdr(#[from] xdr::Error),
 }
 impl Cmd {
     pub fn run(&self) -> Result<(), Error> {
@@ -30,7 +27,16 @@ impl Cmd {
 
     pub fn contract_address(&self) -> Result<stellar_strkey::Contract, Error> {
         let network = self.config.get_network()?;
-        let contract_id = contract_id_hash_from_asset(&self.asset, &network.network_passphrase);
-        Ok(stellar_strkey::Contract(contract_id.0))
+        self.try_into()
+    }
+}
+
+impl TryFrom<&Cmd> for stellar_strkey::Contract {
+    type Error = xdr::Error;
+
+    fn try_from(Cmd { asset, config }: &Cmd) -> Result<Self, Self::Error> {
+        let network = config.get_network()?;
+        let asset: Asset = asset.into()?;
+        Ok(asset.into_contract_id(&network.network_passphrase)?)
     }
 }

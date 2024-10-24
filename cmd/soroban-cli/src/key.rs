@@ -83,16 +83,15 @@ impl Args {
                 .collect::<Result<Vec<_>, Error>>()?
         } else if let Some(keys) = &self.key_xdr {
             keys.iter()
-                .map(|s| Ok(ScVal::from_xdr_base64(s, Limits::none())?))
+                .map(|s| ScVal::from_xdr_base64(s, Limits::none()))
                 .collect::<Result<Vec<_>, Error>>()?
         } else if let Some(wasm) = &self.wasm {
             return Ok(vec![crate::wasm::Args { wasm: wasm.clone() }.try_into()?]);
         } else if let Some(wasm_hash) = &self.wasm_hash {
+            let hash = xdr::Hash::from_hex(wasm_hash)
+                .map_err(|e| Error::CannotParseContractId(wasm_hash.clone(), e))?;
             return Ok(vec![LedgerKey::ContractCode(LedgerKeyContractCode {
-                hash: xdr::Hash(
-                    soroban_spec_tools::utils::contract_id_from_str(wasm_hash)
-                        .map_err(|e| Error::CannotParseContractId(wasm_hash.clone(), e))?,
-                ),
+                hash,
             })]);
         } else {
             vec![ScVal::LedgerKeyContractInstance]
@@ -104,7 +103,7 @@ impl Args {
             .into_iter()
             .map(|key| {
                 LedgerKey::ContractData(LedgerKeyContractData {
-                    contract: ScAddress::Contract(xdr::Hash(contract.0)),
+                    contract: contract.into(),
                     durability: (&self.durability).into(),
                     key,
                 })

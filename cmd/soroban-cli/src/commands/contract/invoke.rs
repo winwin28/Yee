@@ -12,6 +12,7 @@ use soroban_spec::read::FromWasmError;
 
 use super::super::events;
 use super::arg_parsing;
+use crate::tx::builder::TxExt;
 use crate::{
     assembled::simulate_and_assemble_transaction,
     commands::{
@@ -110,8 +111,6 @@ pub enum Error {
     #[error("Contract Error\n{0}: {1}")]
     ContractInvoke(String, String),
     #[error(transparent)]
-    StrKey(#[from] stellar_strkey::DecodeError),
-    #[error(transparent)]
     ContractSpec(#[from] contract::Error),
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -125,11 +124,11 @@ pub enum Error {
     ArgParsing(#[from] arg_parsing::Error),
 }
 
-impl From<Infallible> for Error {
-    fn from(_: Infallible) -> Self {
-        unreachable!()
-    }
-}
+// impl From<Infallible> for Error {
+//     fn from(_: Infallible) -> Self {
+//         unreachable!()
+//     }
+// }
 
 impl Cmd {
     pub async fn run(&self, global_args: &global::Args) -> Result<(), Error> {
@@ -217,7 +216,7 @@ impl NetworkRunnable for Cmd {
                 .await?
         };
         let sequence: i64 = account_details.seq_num.into();
-        let AccountId(PublicKey::PublicKeyTypeEd25519(account_id)) = account_details.account_id;
+        let source_account = account_details.account_id;
 
         let spec_entries = get_remote_contract_spec(
             &contract_id.0,
@@ -232,12 +231,12 @@ impl NetworkRunnable for Cmd {
         // Get the ledger footprint
         let (function, spec, host_function_params, signers) =
             build_host_function_parameters(&contract_id, &self.slop, &spec_entries, config)?;
-        let tx = build_invoke_contract_tx(
-            host_function_params.clone(),
-            sequence + 1,
+        let tx = Transaction::new_tx(
+            source_account.into(),
             self.fee.fee,
-            account_id,
-        )?;
+            sequence + 1,
+            host_function_params.into(),
+        );
         if self.fee.build_only {
             return Ok(TxnResult::Txn(tx));
         }
@@ -286,34 +285,6 @@ impl NetworkRunnable for Cmd {
 
 const DEFAULT_ACCOUNT_ID: AccountId = AccountId(PublicKey::PublicKeyTypeEd25519(Uint256([0; 32])));
 
-// fn log_auth_cost_and_footprint(resources: Option<&SorobanResources>) {
-//     if let Some(resources) = resources {
-//         crate::log::footprint(&resources.footprint);
-//         crate::log::cost(resources);
-//     }
-// }
-
-// fn resources(tx: &Transaction) -> Option<&SorobanResources> {
-//     let TransactionExt::V1(SorobanTransactionData { resources, .. }) = &tx.ext else {
-//         return None;
-//     };
-//     Some(resources)
-// }
-
-// fn auth_entries(tx: &Transaction) -> VecM<SorobanAuthorizationEntry> {
-//     tx.operations
-//         .first()
-//         .and_then(|op| match op.body {
-//             OperationBody::InvokeHostFunction(ref body) => (matches!(
-//                 body.auth.first().map(|x| &x.root_invocation.function),
-//                 Some(&SorobanAuthorizedFunction::ContractFn(_))
-//             ))
-//             .then_some(body.auth.clone()),
-//             _ => None,
-//         })
-//         .unwrap_or_default()
-// }
-
 fn default_account_entry() -> AccountEntry {
     AccountEntry {
         account_id: DEFAULT_ACCOUNT_ID,
@@ -327,30 +298,6 @@ fn default_account_entry() -> AccountEntry {
         signers: unsafe { [].try_into().unwrap_unchecked() },
         ext: AccountEntryExt::V0,
     }
-}
-
-fn build_invoke_contract_tx(
-    parameters: InvokeContractArgs,
-    sequence: i64,
-    fee: u32,
-    source_account_id: Uint256,
-) -> Result<Transaction, Error> {
-    let op = Operation {
-        source_account: None,
-        body: OperationBody::InvokeHostFunction(InvokeHostFunctionOp {
-            host_function: HostFunction::InvokeContract(parameters),
-            auth: VecM::default(),
-        }),
-    };
-    Ok(Transaction {
-        source_account: MuxedAccount::Ed25519(source_account_id),
-        fee,
-        seq_num: SequenceNumber(sequence),
-        cond: Preconditions::None,
-        memo: Memo::None,
-        operations: vec![op].try_into()?,
-        ext: TransactionExt::V0,
-    })
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, ValueEnum, Default)]

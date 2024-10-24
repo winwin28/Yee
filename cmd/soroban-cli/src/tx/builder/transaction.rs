@@ -15,6 +15,8 @@ pub trait TxExt {
     fn add_memo(self, memo: Memo) -> xdr::Transaction;
 
     fn add_cond(self, cond: xdr::Preconditions) -> xdr::Transaction;
+
+    fn hash(&self, network_passphrase: &str) -> Result<xdr::Hash, xdr::Error>;
 }
 
 impl TxExt for xdr::Transaction {
@@ -49,5 +51,15 @@ impl TxExt for xdr::Transaction {
 
     fn add_cond(self, cond: xdr::Preconditions) -> xdr::Transaction {
         xdr::Transaction { cond, ..self }
+    }
+
+    fn hash(&self, network_passphrase: &str) -> Result<xdr::Hash, xdr::Error> {
+        let signature_payload = TransactionSignaturePayload {
+            network_id: Hash::from_bytes(network_passphrase),
+            tagged_transaction: TransactionSignaturePayloadTaggedTransaction::Tx(self.clone()),
+        };
+        signature_payload
+            .to_xdr(Limits::none())
+            .map(Hash::from_bytes)
     }
 }

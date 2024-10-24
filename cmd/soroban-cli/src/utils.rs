@@ -1,5 +1,4 @@
 use phf::phf_map;
-use sha2::{Digest, Sha256};
 use stellar_strkey::ed25519::PrivateKey;
 
 use crate::xdr::{
@@ -12,33 +11,12 @@ pub use soroban_spec_tools::contract as contract_spec;
 
 use crate::config::network::Network;
 
-/// # Errors
-///
-/// Might return an error
-pub fn contract_hash(contract: &[u8]) -> Result<Hash, xdr::Error> {
-    Ok(Hash(Sha256::digest(contract).into()))
-}
-
-/// # Errors
-///
-/// Might return an error
-pub fn transaction_hash(
-    tx: &Transaction,
-    network_passphrase: &str,
-) -> Result<[u8; 32], xdr::Error> {
-    let signature_payload = TransactionSignaturePayload {
-        network_id: Hash(Sha256::digest(network_passphrase).into()),
-        tagged_transaction: TransactionSignaturePayloadTaggedTransaction::Tx(tx.clone()),
-    };
-    Ok(Sha256::digest(signature_payload.to_xdr(Limits::none())?).into())
-}
-
 static EXPLORERS: phf::Map<&'static str, &'static str> = phf_map! {
     "Test SDF Network ; September 2015" => "https://stellar.expert/explorer/testnet",
     "Public Global Stellar Network ; September 2015" => "https://stellar.expert/explorer/public",
 };
 
-pub fn explorer_url_for_transaction(network: &Network, tx_hash: &str) -> Option<String> {
+pub fn explorer_url_for_transaction(network: &Network, tx_hash: &Hash) -> Option<String> {
     EXPLORERS
         .get(&network.network_passphrase)
         .map(|base_url| format!("{base_url}/tx/{tx_hash}"))
@@ -51,27 +29,6 @@ pub fn explorer_url_for_contract(
     EXPLORERS
         .get(&network.network_passphrase)
         .map(|base_url| format!("{base_url}/contract/{contract_id}"))
-}
-
-/// # Errors
-///
-/// Might return an error
-pub fn contract_id_from_str(
-    contract_id: &str,
-) -> Result<stellar_strkey::Contract, stellar_strkey::DecodeError> {
-    Ok(
-        if let Ok(strkey) = stellar_strkey::Contract::from_string(contract_id) {
-            strkey
-        } else {
-            // strkey failed, try to parse it as a hex string, for backwards compatibility.
-            stellar_strkey::Contract(
-                soroban_spec_tools::utils::padded_hex_from_str(contract_id, 32)
-                    .map_err(|_| stellar_strkey::DecodeError::Invalid)?
-                    .try_into()
-                    .map_err(|_| stellar_strkey::DecodeError::Invalid)?,
-            )
-        },
-    )
 }
 
 /// # Errors
@@ -122,21 +79,6 @@ pub(crate) fn parse_secret_key(
 
 pub fn is_hex_string(s: &str) -> bool {
     s.chars().all(|s| s.is_ascii_hexdigit())
-}
-
-pub fn contract_id_hash_from_asset(
-    asset: impl Into<Asset>,
-    network_passphrase: &str,
-) -> stellar_strkey::Contract {
-    let network_id = Hash(Sha256::digest(network_passphrase.as_bytes()).into());
-    let preimage = HashIdPreimage::ContractId(HashIdPreimageContractId {
-        network_id,
-        contract_id_preimage: ContractIdPreimage::Asset(asset.into()),
-    });
-    let preimage_xdr = preimage
-        .to_xdr(Limits::none())
-        .expect("HashIdPreimage should not fail encoding to xdr");
-    stellar_strkey::Contract(Sha256::digest(preimage_xdr).into())
 }
 
 pub fn get_name_from_stellar_asset_contract_storage(storage: &ScMap) -> Option<String> {
@@ -247,34 +189,13 @@ pub mod rpc {
         if entries.is_empty() {
             return Err(Error::NotFound(
                 "Contract Code".to_string(),
-                hex::encode(hash),
+                hash.to_string(),
             ));
         }
         let contract_data_entry = &entries[0];
         match LedgerEntryData::from_xdr_base64(&contract_data_entry.xdr, Limits::none())? {
             LedgerEntryData::ContractCode(xdr::ContractCodeEntry { code, .. }) => Ok(code.into()),
             scval => Err(Error::UnexpectedContractCodeDataType(scval)),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_contract_id_from_str() {
-        // strkey
-        match contract_id_from_str("CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE") {
-            Ok(contract_id) => assert_eq!(
-                contract_id.0,
-                [
-                    0x36, 0x3e, 0xaa, 0x38, 0x67, 0x84, 0x1f, 0xba, 0xd0, 0xf4, 0xed, 0x88, 0xc7,
-                    0x79, 0xe4, 0xfe, 0x66, 0xe5, 0x6a, 0x24, 0x70, 0xdc, 0x98, 0xc0, 0xec, 0x9c,
-                    0x07, 0x3d, 0x05, 0xc7, 0xb1, 0x03,
-                ]
-            ),
-            Err(err) => panic!("Failed to parse contract id: {err}"),
         }
     }
 }

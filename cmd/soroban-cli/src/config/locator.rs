@@ -319,12 +319,16 @@ impl Args {
         &self,
         alias: &str,
         network_passphrase: &str,
-    ) -> Result<Option<String>, Error> {
+    ) -> Result<Option<Contract>, Error> {
         let Some(alias_data) = self.load_contract_from_alias(alias)? else {
             return Ok(None);
         };
 
-        Ok(alias_data.get(network_passphrase).cloned())
+        Ok(alias_data
+            .get(network_passphrase)
+            .cloned()
+            .map(str::parse)
+            .transpose()?)
     }
 
     pub fn resolve_contract_id(
@@ -335,11 +339,9 @@ impl Args {
         let contract_id = self
             .get_contract_id(alias_or_contract_id, network_passphrase)?
             .unwrap_or_else(|| alias_or_contract_id.to_string());
-
-        Ok(Contract(
-            soroban_spec_tools::utils::contract_id_from_str(&contract_id)
-                .map_err(|e| Error::CannotParseContractId(contract_id.clone(), e))?,
-        ))
+        contract_id
+            .parse()
+            .map_err(|e| Error::CannotParseContractId(contract_id.clone(), e))
     }
 }
 

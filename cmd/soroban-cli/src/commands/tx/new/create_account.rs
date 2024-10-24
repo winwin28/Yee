@@ -16,10 +16,16 @@ pub struct Cmd {
 }
 
 impl From<&Cmd> for xdr::OperationBody {
-    fn from(cmd: &Cmd) -> Self {
+    fn from(
+        Cmd {
+            destination,
+            starting_balance,
+            ..
+        }: &Cmd,
+    ) -> Self {
         xdr::OperationBody::CreateAccount(xdr::CreateAccountOp {
-            destination: cmd.destination.clone(),
-            starting_balance: cmd.starting_balance,
+            destination: destination.into(),
+            starting_balance: *starting_balance,
         })
     }
 }

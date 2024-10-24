@@ -33,35 +33,47 @@ pub struct Cmd {
 }
 
 impl From<&Cmd> for xdr::OperationBody {
-    fn from(cmd: &Cmd) -> Self {
+    fn from(
+        Cmd {
+            trustor,
+            asset,
+            set_authorize,
+            set_authorize_to_maintain_liabilities,
+            set_trustline_clawback_enabled,
+            clear_authorize,
+            clear_authorize_to_maintain_liabilities,
+            clear_trustline_clawback_enabled,
+            ..
+        }: &Cmd,
+    ) -> Self {
         let mut set_flags = 0;
         let mut set_flag = |flag: xdr::TrustLineFlags| set_flags |= flag as u32;
 
-        if cmd.set_authorize {
+        if *set_authorize {
             set_flag(xdr::TrustLineFlags::AuthorizedFlag);
         };
-        if cmd.set_authorize_to_maintain_liabilities {
+        if *set_authorize_to_maintain_liabilities {
             set_flag(xdr::TrustLineFlags::AuthorizedToMaintainLiabilitiesFlag);
         };
-        if cmd.set_trustline_clawback_enabled {
+        if *set_trustline_clawback_enabled {
             set_flag(xdr::TrustLineFlags::TrustlineClawbackEnabledFlag);
         };
 
         let mut clear_flags = 0;
         let mut clear_flag = |flag: xdr::TrustLineFlags| clear_flags |= flag as u32;
-        if cmd.clear_authorize {
+        if *clear_authorize {
             clear_flag(xdr::TrustLineFlags::AuthorizedFlag);
         };
-        if cmd.clear_authorize_to_maintain_liabilities {
+        if *clear_authorize_to_maintain_liabilities {
             clear_flag(xdr::TrustLineFlags::AuthorizedToMaintainLiabilitiesFlag);
         };
-        if cmd.clear_trustline_clawback_enabled {
+        if *clear_trustline_clawback_enabled {
             clear_flag(xdr::TrustLineFlags::TrustlineClawbackEnabledFlag);
         };
 
         xdr::OperationBody::SetTrustLineFlags(xdr::SetTrustLineFlagsOp {
-            trustor: cmd.trustor.clone(),
-            asset: cmd.asset.clone().into(),
+            trustor: trustor.into(),
+            asset: asset.into(),
             clear_flags,
             set_flags,
         })

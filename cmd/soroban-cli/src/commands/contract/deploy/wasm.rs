@@ -11,6 +11,7 @@ use crate::xdr::{
 use clap::{arg, command, Parser};
 use rand::Rng;
 use regex::Regex;
+use stellar_xdr::curr::FromHex;
 
 use crate::{
     assembled::simulate_and_assemble_transaction,
@@ -187,23 +188,15 @@ impl NetworkRunnable for Cmd {
                 .to_string()
         };
 
-        let wasm_hash = Hash(
-            utils::contract_id_from_str(&wasm_hash)
-                .map_err(|e| Error::CannotParseWasmHash {
-                    wasm_hash: wasm_hash.clone(),
-                    error: e,
-                })?
-                .0,
-        );
+        let wasm_hash = wasm_hash
+            .parse()
+            .map_err(|error| Error::CannotParseWasmHash { wasm_hash, error })?;
 
         print.infoln(format!("Using wasm hash {wasm_hash}").as_str());
 
         let network = config.get_network()?;
         let salt: [u8; 32] = match &self.salt {
-            Some(h) => soroban_spec_tools::utils::padded_hex_from_str(h, 32)
-                .map_err(|_| Error::CannotParseSalt { salt: h.clone() })?
-                .try_into()
-                .map_err(|_| Error::CannotParseSalt { salt: h.clone() })?,
+            Some(h) => Hash::from_hex(s).map_err(|_| Error::CannotParseSalt { salt: h.clone() })?,
             None => rand::thread_rng().gen::<[u8; 32]>(),
         };
 
@@ -273,7 +266,7 @@ fn build_create_contract_tx(
     salt: [u8; 32],
     key: stellar_strkey::ed25519::PublicKey,
 ) -> Result<(Transaction, stellar_strkey::Contract), Error> {
-    let source_account = AccountId(PublicKey::PublicKeyTypeEd25519(key.0.into()));
+    let source_account = key.clone().into();
 
     let contract_id_preimage = ContractIdPreimage::Address(ContractIdPreimageFromAddress {
         address: ScAddress::Account(source_account),
@@ -292,7 +285,7 @@ fn build_create_contract_tx(
         }),
     };
     let tx = Transaction {
-        source_account: MuxedAccount::Ed25519(key.0.into()),
+        source_account: key.into(),
         fee,
         seq_num: SequenceNumber(sequence),
         cond: Preconditions::None,

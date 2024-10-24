@@ -13,7 +13,7 @@ pub struct Cmd {
 }
 
 impl From<&Cmd> for xdr::OperationBody {
-    fn from(cmd: &Cmd) -> Self {
-        xdr::OperationBody::AccountMerge(cmd.account.clone())
+    fn from(Cmd { account, .. }: &Cmd) -> Self {
+        xdr::OperationBody::AccountMerge(account.into())
     }
 }

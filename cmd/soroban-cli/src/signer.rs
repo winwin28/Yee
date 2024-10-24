@@ -1,6 +1,3 @@
-use ed25519_dalek::ed25519::signature::Signer as _;
-use sha2::{Digest, Sha256};
-
 use crate::xdr::{
     self, AccountId, DecoratedSignature, Hash, HashIdPreimage, HashIdPreimageSorobanAuthorization,
     InvokeHostFunctionOp, Limits, Operation, OperationBody, PublicKey, ScAddress, ScMap, ScSymbol,
@@ -8,8 +5,9 @@ use crate::xdr::{
     SorobanAuthorizedFunction, SorobanCredentials, Transaction, TransactionEnvelope,
     TransactionV1Envelope, Uint256, VecM, WriteXdr,
 };
+use ed25519_dalek::ed25519::signature::Signer as _;
 
-use crate::{config::network::Network, print::Print, utils::transaction_hash};
+use crate::{config::network::Network, print::Print};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -101,8 +99,7 @@ pub fn sign_soroban_authorizations(
                     // This address is for a contract. This means we're using a custom
                     // smart-contract account. Currently the CLI doesn't support that yet.
                     return Err(Error::MissingSignerForAddress {
-                        address: stellar_strkey::Strkey::Contract(stellar_strkey::Contract(*c))
-                            .to_string(),
+                        address: stellar_strkey::Contract(*c).to_string(),
                     });
                 }
             };
@@ -117,10 +114,7 @@ pub fn sign_soroban_authorizations(
             } else {
                 // We don't have a signer for this address
                 return Err(Error::MissingSignerForAddress {
-                    address: stellar_strkey::Strkey::PublicKeyEd25519(
-                        stellar_strkey::ed25519::PublicKey(*needle),
-                    )
-                    .to_string(),
+                    address: stellar_strkey::ed25519::PublicKey(*needle).to_string(),
                 });
             };
 
@@ -163,7 +157,7 @@ fn sign_soroban_authorization_entry(
     })
     .to_xdr(Limits::none())?;
 
-    let payload = Sha256::digest(preimage);
+    let Hash(payload) = Hash::hash_bytes(preimage);
     let signature = signer.sign(&payload);
 
     let map = ScMap::sorted_from(vec![
@@ -229,11 +223,11 @@ impl Signer {
     ) -> Result<TransactionEnvelope, Error> {
         match &tx_env {
             TransactionEnvelope::Tx(TransactionV1Envelope { tx, signatures }) => {
-                let tx_hash = transaction_hash(tx, &network.network_passphrase)?;
+                let tx_hash = tx.hash(&network.network_passphrase)?;
                 self.print
-                    .infoln(format!("Signing transaction: {}", hex::encode(tx_hash),));
+                    .infoln(format!("Signing transaction: {}", tx_hash,));
                 let decorated_signature = match &self.kind {
-                    SignerKind::Local(key) => key.sign_tx_hash(tx_hash)?,
+                    SignerKind::Local(key) => key.sign_tx_hash(tx_hash.0)?,
                     SignerKind::Lab => Lab::sign_tx_env(tx_env, network, &self.print)?,
                 };
                 let mut sigs = signatures.clone().into_vec();

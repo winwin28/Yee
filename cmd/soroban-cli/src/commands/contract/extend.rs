@@ -1,10 +1,13 @@
 use std::{fmt::Debug, path::Path, str::FromStr};
 
-use crate::xdr::{
-    Error as XdrError, ExtendFootprintTtlOp, ExtensionPoint, LedgerEntry, LedgerEntryChange,
-    LedgerEntryData, LedgerFootprint, Limits, Memo, Operation, OperationBody, Preconditions,
-    SequenceNumber, SorobanResources, SorobanTransactionData, Transaction, TransactionExt,
-    TransactionMeta, TransactionMetaV3, TtlEntry, WriteXdr,
+use crate::{
+    tx::builder::TxExt,
+    xdr::{
+        Error as XdrError, ExtendFootprintTtlOp, ExtensionPoint, LedgerEntry, LedgerEntryChange,
+        LedgerEntryData, LedgerFootprint, Limits, Memo, Operation, OperationBody, Preconditions,
+        SequenceNumber, SorobanResources, SorobanTransactionData, Transaction, TransactionExt,
+        TransactionMeta, TransactionMetaV3, TtlEntry, WriteXdr,
+    },
 };
 use clap::{command, Parser};
 
@@ -137,35 +140,28 @@ impl NetworkRunnable for Cmd {
         // Get the account sequence number
         let account_details = client.get_account(&source_account.to_string()).await?;
         let sequence: i64 = account_details.seq_num.into();
-
-        let tx = Transaction {
-            source_account,
-            fee: self.fee.fee,
-            seq_num: SequenceNumber(sequence + 1),
-            cond: Preconditions::None,
-            memo: Memo::None,
-            operations: vec![Operation {
-                source_account: None,
-                body: OperationBody::ExtendFootprintTtl(ExtendFootprintTtlOp {
-                    ext: ExtensionPoint::V0,
-                    extend_to,
-                }),
-            }]
-            .try_into()?,
-            ext: TransactionExt::V1(SorobanTransactionData {
+        let operation = Operation {
+            source_account: None,
+            body: OperationBody::ExtendFootprintTtl(ExtendFootprintTtlOp {
                 ext: ExtensionPoint::V0,
-                resources: SorobanResources {
-                    footprint: LedgerFootprint {
-                        read_only: keys.clone().try_into()?,
-                        read_write: vec![].try_into()?,
-                    },
-                    instructions: self.fee.instructions.unwrap_or_default(),
-                    read_bytes: 0,
-                    write_bytes: 0,
-                },
-                resource_fee: 0,
+                extend_to,
             }),
         };
+        let mut tx = Transaction::new_tx(source_account, self.fee.fee, seq + 1, operation);
+        tx.ext = TransactionExt::V1(SorobanTransactionData {
+            ext: ExtensionPoint::V0,
+            resources: SorobanResources {
+                footprint: LedgerFootprint {
+                    read_only: keys.clone().try_into()?,
+                    read_write: vec![].try_into()?,
+                },
+                instructions: self.fee.instructions.unwrap_or_default(),
+                read_bytes: 0,
+                write_bytes: 0,
+            },
+            resource_fee: 0,
+        });
+
         if self.fee.build_only {
             return Ok(TxnResult::Txn(tx));
         }

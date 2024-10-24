@@ -88,7 +88,7 @@ impl Cmd {
             .to_envelope();
         match res {
             TxnEnvelopeResult::TxnEnvelope(tx) => println!("{}", tx.to_xdr_base64(Limits::none())?),
-            TxnEnvelopeResult::Res(hash) => println!("{}", hex::encode(hash)),
+            TxnEnvelopeResult::Res(hash) => println!("{hash}"),
         };
         Ok(())
     }
@@ -261,17 +261,9 @@ pub(crate) fn build_install_contract_code_tx(
     fee: u32,
     source: &xdr::MuxedAccount,
 ) -> Result<(Transaction, Hash), Error> {
-    let hash = utils::contract_hash(source_code)?;
-
-    let op = xdr::Operation {
-        source_account: None,
-        body: OperationBody::InvokeHostFunction(InvokeHostFunctionOp {
-            host_function: HostFunction::UploadContractWasm(source_code.try_into()?),
-            auth: VecM::default(),
-        }),
-    };
-    let tx = Transaction::new_tx(source.clone(), fee, sequence, op);
-
+    let hash = Hash::hash_bytes(source_code);
+    let host_func: HostFunction = source_code.try_into()?;
+    let tx = Transaction::new_tx(source.clone(), fee, sequence, host_func.into());
     Ok((tx, hash))
 }
 

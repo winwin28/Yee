@@ -18,7 +18,13 @@ pub struct Cmd {
 }
 
 impl From<&Cmd> for xdr::OperationBody {
-    fn from(cmd: &Cmd) -> Self {
+    fn from(
+        Cmd {
+            data_name,
+            data_value,
+            ..
+        }: &Cmd,
+    ) -> Self {
         let data_value = cmd.data_value.clone().map(Into::into);
         let data_name = cmd.data_name.clone().into();
         xdr::OperationBody::ManageData(xdr::ManageDataOp {

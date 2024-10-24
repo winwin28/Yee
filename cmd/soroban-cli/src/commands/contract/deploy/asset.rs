@@ -17,8 +17,7 @@ use crate::{
     },
     config::{self, data, network},
     rpc::Error as SorobanRpcError,
-    tx::builder,
-    utils::contract_id_hash_from_asset,
+    xdr,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -37,14 +36,6 @@ pub enum Error {
     Data(#[from] data::Error),
     #[error(transparent)]
     Network(#[from] network::Error),
-    #[error(transparent)]
-    Builder(#[from] builder::Error),
-}
-
-impl From<Infallible> for Error {
-    fn from(_: Infallible) -> Self {
-        unreachable!()
-    }
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -52,7 +43,7 @@ impl From<Infallible> for Error {
 pub struct Cmd {
     /// ID of the Stellar classic asset to wrap, e.g. "USDC:G...5"
     #[arg(long)]
-    pub asset: builder::Asset,
+    pub asset: xdr::Asset,
 
     #[command(flatten)]
     pub config: config::Args,
@@ -100,7 +91,7 @@ impl NetworkRunnable for Cmd {
         let account_details = client.get_account(&public_strkey).await?;
         let sequence: i64 = account_details.seq_num.into();
         let network_passphrase = &network.network_passphrase;
-        let contract_id = contract_id_hash_from_asset(asset, network_passphrase);
+        let contract_id = asset.into_contract_id(network_passphrase);
         let tx = build_wrap_token_tx(
             asset,
             &contract_id,

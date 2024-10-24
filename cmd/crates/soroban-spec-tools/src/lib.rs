@@ -4,13 +4,12 @@ use std::str::FromStr;
 use itertools::Itertools;
 use serde_json::{json, Value};
 use stellar_xdr::curr::{
-    AccountId, BytesM, ContractExecutable, Error as XdrError, Hash, Int128Parts, Int256Parts,
-    PublicKey, ScAddress, ScBytes, ScContractInstance, ScMap, ScMapEntry, ScNonceKey, ScSpecEntry,
-    ScSpecFunctionV0, ScSpecTypeDef as ScType, ScSpecTypeMap, ScSpecTypeOption, ScSpecTypeResult,
-    ScSpecTypeTuple, ScSpecTypeUdt, ScSpecTypeVec, ScSpecUdtEnumV0, ScSpecUdtErrorEnumCaseV0,
-    ScSpecUdtErrorEnumV0, ScSpecUdtStructV0, ScSpecUdtUnionCaseTupleV0, ScSpecUdtUnionCaseV0,
-    ScSpecUdtUnionCaseVoidV0, ScSpecUdtUnionV0, ScString, ScSymbol, ScVal, ScVec, StringM,
-    UInt128Parts, UInt256Parts, Uint256, VecM,
+    BytesM, ContractExecutable, Error as XdrError, ScAddress, ScBytes, ScContractInstance, ScMap,
+    ScMapEntry, ScNonceKey, ScSpecEntry, ScSpecFunctionV0, ScSpecTypeDef as ScType, ScSpecTypeMap,
+    ScSpecTypeOption, ScSpecTypeResult, ScSpecTypeTuple, ScSpecTypeUdt, ScSpecTypeVec,
+    ScSpecUdtEnumV0, ScSpecUdtErrorEnumCaseV0, ScSpecUdtErrorEnumV0, ScSpecUdtStructV0,
+    ScSpecUdtUnionCaseTupleV0, ScSpecUdtUnionCaseV0, ScSpecUdtUnionCaseVoidV0, ScSpecUdtUnionV0,
+    ScString, ScSymbol, ScVal, ScVec, StringM, VecM,
 };
 
 pub mod contract;
@@ -380,12 +379,12 @@ impl Spec {
             .to_vec()
             .iter()
             .map(|f| {
-                let name = &f.name.to_utf8_string_lossy();
-                let v = map
-                    .get(name)
-                    .ok_or_else(|| Error::MissingKey(name.clone()))?;
+                let name = f.name.to_utf8_string_lossy();
+                let Some(v) = map.get(&name) else {
+                    return Err(Error::MissingKey(name));
+                };
                 let val = self.from_json(v, &f.type_)?;
-                let key = StringM::from_str(name).unwrap();
+                let key = StringM::from_str(&name).unwrap();
                 Ok(ScMapEntry {
                     key: ScVal::Symbol(key.into()),
                     val,
@@ -764,55 +763,33 @@ pub fn from_json_primitives(v: &Value, t: &ScType) -> Result<ScVal, Error> {
 
         // Number parsing
         (ScType::U128, Value::String(s)) => {
-            let val: u128 = u128::from_str(s)
-                .map(Into::into)
+            let val = s
+                .parse()
                 .map_err(|_| Error::InvalidValue(Some(t.clone())))?;
-            let bytes = val.to_be_bytes();
-            let (hi, lo) = bytes.split_at(8);
-            ScVal::U128(UInt128Parts {
-                hi: u64::from_be_bytes(hi.try_into()?),
-                lo: u64::from_be_bytes(lo.try_into()?),
-            })
+            ScVal::U128(val)
         }
 
         (ScType::I128, Value::String(s)) => {
-            let val: i128 = i128::from_str(s)
-                .map(Into::into)
+            let val = s
+                .parse()
                 .map_err(|_| Error::InvalidValue(Some(t.clone())))?;
-            let bytes = val.to_be_bytes();
-            let (hi, lo) = bytes.split_at(8);
-            ScVal::I128(Int128Parts {
-                hi: i64::from_be_bytes(hi.try_into()?),
-                lo: u64::from_be_bytes(lo.try_into()?),
-            })
+            ScVal::I128(val)
         }
 
         // Number parsing
         (ScType::U256, Value::String(s)) => {
-            let (hi, lo) = ethnum::U256::from_str_prefixed(s)?.into_words();
-            let hi_bytes = hi.to_be_bytes();
-            let (hi_hi, hi_lo) = hi_bytes.split_at(8);
-            let lo_bytes = lo.to_be_bytes();
-            let (lo_hi, lo_lo) = lo_bytes.split_at(8);
-            ScVal::U256(UInt256Parts {
-                hi_hi: u64::from_be_bytes(hi_hi.try_into()?),
-                hi_lo: u64::from_be_bytes(hi_lo.try_into()?),
-                lo_hi: u64::from_be_bytes(lo_hi.try_into()?),
-                lo_lo: u64::from_be_bytes(lo_lo.try_into()?),
-            })
+            let parts = ethnum::U256::from_str_prefixed(s)?
+                .into_words()
+                .try_into()
+                .map_err(|_| Error::InvalidValue(Some(t.clone())))?;
+            ScVal::U256(parts)
         }
         (ScType::I256, Value::String(s)) => {
-            let (hi, lo) = ethnum::I256::from_str_prefixed(s)?.into_words();
-            let hi_bytes = hi.to_be_bytes();
-            let (hi_hi, hi_lo) = hi_bytes.split_at(8);
-            let lo_bytes = lo.to_be_bytes();
-            let (lo_hi, lo_lo) = lo_bytes.split_at(8);
-            ScVal::I256(Int256Parts {
-                hi_hi: i64::from_be_bytes(hi_hi.try_into()?),
-                hi_lo: u64::from_be_bytes(hi_lo.try_into()?),
-                lo_hi: u64::from_be_bytes(lo_hi.try_into()?),
-                lo_lo: u64::from_be_bytes(lo_lo.try_into()?),
-            })
+            let parts = ethnum::I256::from_str_prefixed(s)?
+                .into_words()
+                .try_into()
+                .map_err(|_| Error::InvalidValue(Some(t.clone())))?;
+            ScVal::I256(parts)
         }
 
         (ScType::I32, Value::Number(n)) => ScVal::I32(
@@ -837,11 +814,10 @@ pub fn from_json_primitives(v: &Value, t: &ScType) -> Result<ScVal, Error> {
         ),
 
         // Symbol parsing
-        (ScType::Symbol, Value::String(s)) => ScVal::Symbol(ScSymbol(
-            s.as_bytes()
-                .try_into()
+        (ScType::Symbol, Value::String(s)) => ScVal::Symbol(
+            s.try_into()
                 .map_err(|_| Error::InvalidValue(Some(t.clone())))?,
-        )),
+        ),
 
         (ScType::Address, Value::String(s)) => sc_address_from_json(s)?,
 
@@ -884,13 +860,15 @@ pub fn from_json_primitives(v: &Value, t: &ScType) -> Result<ScVal, Error> {
                 })
                 .collect();
             let converted: BytesM<{ u32::MAX }> = b?.try_into().map_err(Error::Xdr)?;
-            ScVal::Bytes(ScBytes(converted))
+            converted.into()
         }
 
-        (ScType::String, Value::String(s)) => ScVal::String(ScString(
-            s.try_into()
+        (ScType::String, Value::String(s)) => ScString(
+            s.as_str()
+                .try_into()
                 .map_err(|_| Error::InvalidValue(Some(t.clone())))?,
-        )),
+        )
+        .into(),
         // Todo make proper error Which shouldn't exist
         (_, raw) => serde_json::from_value(raw.clone())?,
     };
@@ -1040,27 +1018,14 @@ pub fn to_json(v: &ScVal) -> Result<Value, Error> {
 }
 
 fn sc_address_to_json(v: &ScAddress) -> Value {
-    match v {
-        ScAddress::Account(AccountId(PublicKey::PublicKeyTypeEd25519(Uint256(k)))) => {
-            Value::String(stellar_strkey::ed25519::PublicKey(*k).to_string())
-        }
-        ScAddress::Contract(Hash(h)) => Value::String(stellar_strkey::Contract(*h).to_string()),
-    }
+    Value::String(v.to_string())
 }
 
 fn sc_address_from_json(s: &str) -> Result<ScVal, Error> {
-    stellar_strkey::Strkey::from_string(s)
-        .map_err(|_| Error::InvalidValue(Some(ScType::Address)))
-        .map(|parsed| match parsed {
-            stellar_strkey::Strkey::PublicKeyEd25519(p) => Some(ScVal::Address(
-                ScAddress::Account(AccountId(PublicKey::PublicKeyTypeEd25519(Uint256(p.0)))),
-            )),
-            stellar_strkey::Strkey::Contract(c) => {
-                Some(ScVal::Address(ScAddress::Contract(Hash(c.0))))
-            }
-            _ => None,
-        })?
-        .ok_or(Error::InvalidValue(Some(ScType::Address)))
+    let sc_address: ScAddress = s
+        .parse()
+        .map_err(|_| Error::InvalidValue(Some(ScType::Address)))?;
+    Ok(sc_address.into())
 }
 
 fn to_lower_hex(bytes: &[u8]) -> String {
@@ -1360,6 +1325,7 @@ impl Spec {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use stellar_xdr::curr as xdr;
 
     use stellar_xdr::curr::ScSpecTypeBytesN;
 
@@ -1373,10 +1339,7 @@ mod tests {
             &ScType::BytesN(ScSpecTypeBytesN { n: 4 }),
         )
         .unwrap();
-        assert_eq!(
-            b,
-            ScVal::Bytes(ScBytes(vec![0xbe, 0xef, 0xfa, 0xce].try_into().unwrap()))
-        );
+        assert_eq!(b, vec![0xbe, 0xef, 0xfa, 0xce].try_into().unwrap());
 
         // Check it parses hex-encoded bytes when they are all numbers. Normally the json would
         // interpret the CLI arg as a number, so we need a special case there.
@@ -1385,10 +1348,7 @@ mod tests {
             &ScType::BytesN(ScSpecTypeBytesN { n: 2 }),
         )
         .unwrap();
-        assert_eq!(
-            b,
-            ScVal::Bytes(ScBytes(vec![0x45, 0x54].try_into().unwrap()))
-        );
+        assert_eq!(b, vec![0x45, 0x54].try_into().unwrap());
     }
 
     #[test]
@@ -1396,25 +1356,19 @@ mod tests {
         // Check it parses hex-encoded bytes
         let b =
             from_json_primitives(&Value::String("beefface".to_string()), &ScType::Bytes).unwrap();
-        assert_eq!(
-            b,
-            ScVal::Bytes(ScBytes(vec![0xbe, 0xef, 0xfa, 0xce].try_into().unwrap()))
-        );
+        assert_eq!(b, vec![0xbe, 0xef, 0xfa, 0xce].try_into().unwrap());
 
         // Check it parses hex-encoded bytes when they are all numbers. Normally the json would
         // interpret the CLI arg as a number, so we need a special case there.
         let b = from_json_primitives(&Value::Number(4554.into()), &ScType::Bytes).unwrap();
-        assert_eq!(
-            b,
-            ScVal::Bytes(ScBytes(vec![0x45, 0x54].try_into().unwrap()))
-        );
+        assert_eq!(b, vec![0x45, 0x54].try_into().unwrap(),);
     }
 
     #[test]
     fn test_sc_address_from_json_strkey() {
         // All zero contract address
         match sc_address_from_json("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4") {
-            Ok(addr) => assert_eq!(addr, ScVal::Address(ScAddress::Contract(Hash([0; 32])))),
+            Ok(addr) => assert_eq!(addr, ScVal::Address(xdr::Hash([0; 32]).into())),
             Err(e) => panic!("Unexpected error: {e}"),
         }
 
@@ -1422,25 +1376,23 @@ mod tests {
         match sc_address_from_json("CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE") {
             Ok(addr) => assert_eq!(
                 addr,
-                ScVal::Address(ScAddress::Contract(
+                ScAddress::Contract(
                     [
                         0x36, 0x3e, 0xaa, 0x38, 0x67, 0x84, 0x1f, 0xba, 0xd0, 0xf4, 0xed, 0x88,
                         0xc7, 0x79, 0xe4, 0xfe, 0x66, 0xe5, 0x6a, 0x24, 0x70, 0xdc, 0x98, 0xc0,
                         0xec, 0x9c, 0x07, 0x3d, 0x05, 0xc7, 0xb1, 0x03,
                     ]
                     .into()
-                ))
+                )
+                .into()
             ),
             Err(e) => panic!("Unexpected error: {e}"),
         }
-
         // All zero user account address
         match sc_address_from_json("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF") {
             Ok(addr) => assert_eq!(
                 addr,
-                ScVal::Address(ScAddress::Account(AccountId(
-                    PublicKey::PublicKeyTypeEd25519([0; 32].into())
-                )))
+                xdr::PublicKey::PublicKeyTypeEd25519([0; 32].into()).into()
             ),
             Err(e) => panic!("Unexpected error: {e}"),
         }
@@ -1449,16 +1401,15 @@ mod tests {
         match sc_address_from_json("GA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQHES5") {
             Ok(addr) => assert_eq!(
                 addr,
-                ScVal::Address(ScAddress::Account(AccountId(
-                    PublicKey::PublicKeyTypeEd25519(
-                        [
-                            0x36, 0x3e, 0xaa, 0x38, 0x67, 0x84, 0x1f, 0xba, 0xd0, 0xf4, 0xed, 0x88,
-                            0xc7, 0x79, 0xe4, 0xfe, 0x66, 0xe5, 0x6a, 0x24, 0x70, 0xdc, 0x98, 0xc0,
-                            0xec, 0x9c, 0x07, 0x3d, 0x05, 0xc7, 0xb1, 0x03,
-                        ]
-                        .into()
-                    )
-                )))
+                xdr::PublicKey::PublicKeyTypeEd25519(
+                    [
+                        0x36, 0x3e, 0xaa, 0x38, 0x67, 0x84, 0x1f, 0xba, 0xd0, 0xf4, 0xed, 0x88,
+                        0xc7, 0x79, 0xe4, 0xfe, 0x66, 0xe5, 0x6a, 0x24, 0x70, 0xdc, 0x98, 0xc0,
+                        0xec, 0x9c, 0x07, 0x3d, 0x05, 0xc7, 0xb1, 0x03,
+                    ]
+                    .into()
+                )
+                .into()
             ),
             Err(e) => panic!("Unexpected error: {e}"),
         }

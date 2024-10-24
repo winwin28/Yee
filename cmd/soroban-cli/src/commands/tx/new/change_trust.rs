@@ -15,15 +15,10 @@ pub struct Cmd {
 }
 
 impl From<&Cmd> for xdr::OperationBody {
-    fn from(cmd: &Cmd) -> Self {
-        let line = match cmd.line.0.clone() {
-            xdr::Asset::CreditAlphanum4(asset) => xdr::ChangeTrustAsset::CreditAlphanum4(asset),
-            xdr::Asset::CreditAlphanum12(asset) => xdr::ChangeTrustAsset::CreditAlphanum12(asset),
-            xdr::Asset::Native => xdr::ChangeTrustAsset::Native,
-        };
+    fn from(Cmd { line, limit, .. }: &Cmd) -> Self {
         xdr::OperationBody::ChangeTrust(xdr::ChangeTrustOp {
-            line,
-            limit: cmd.limit,
+            line: line.into(),
+            limit: *limit,
         })
     }
 }

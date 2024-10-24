@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use stellar_xdr::curr::{
     self as xdr, ExtensionPoint, Hash, InvokeHostFunctionOp, LedgerFootprint, Limits, Memo,
     Operation, OperationBody, Preconditions, ReadXdr, RestoreFootprintOp,
@@ -66,11 +65,7 @@ impl Assembled {
     ///
     /// Returns an error if generating the hash fails.
     pub fn hash(&self, network_passphrase: &str) -> Result<[u8; 32], xdr::Error> {
-        let signature_payload = TransactionSignaturePayload {
-            network_id: Hash(Sha256::digest(network_passphrase).into()),
-            tagged_transaction: TransactionSignaturePayloadTaggedTransaction::Tx(self.txn.clone()),
-        };
-        Ok(Sha256::digest(signature_payload.to_xdr(Limits::none())?).into())
+        Ok(self.txn.hash(network_passphrase).0)
     }
 
     ///  Create a transaction for restoring any data in the `restore_preamble` field of the `SimulateTransactionResponse`.

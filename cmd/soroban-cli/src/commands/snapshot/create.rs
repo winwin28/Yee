@@ -4,7 +4,6 @@ use clap::{arg, Parser, ValueEnum};
 use futures::StreamExt;
 use humantime::format_duration;
 use itertools::{Either, Itertools};
-use sha2::{Digest, Sha256};
 use soroban_ledger_snapshot::LedgerSnapshot;
 use std::{
     collections::HashSet,
@@ -31,7 +30,6 @@ use crate::{
     commands::{config::data, global, HEADING_RPC},
     config::{self, locator, network::passphrase},
     print,
-    tx::builder,
     utils::get_name_from_stellar_asset_contract_storage,
 };
 use crate::{config::address::Address, utils::http};
@@ -138,8 +136,6 @@ pub enum Error {
     ArchiveUrlNotConfigured,
     #[error("parsing asset name: {0}")]
     ParseAssetName(String),
-    #[error(transparent)]
-    Asset(#[from] builder::asset::Error),
 }
 
 /// Checkpoint frequency is usually 64 ledgers, but in local test nets it'll
@@ -159,11 +155,11 @@ impl Cmd {
 
         let ledger = history.current_ledger;
         let network_passphrase = &history.network_passphrase;
-        let network_id = Sha256::digest(network_passphrase);
+        let network_id = Hash::hash_bytes(network_passphrase);
 
         print.infoln(format!("Ledger: {ledger}"));
         print.infoln(format!("Network Passphrase: {network_passphrase}"));
-        print.infoln(format!("Network id: {}", hex::encode(network_id)));
+        print.infoln(format!("Network id: {network_id}"));
 
         // Prepare a flat list of buckets to read. They'll be ordered by their
         // level so that they can iterated higher level to lower level.
@@ -308,10 +304,7 @@ impl Cmd {
                                     }) => {
                                         if !current.wasm_hashes.contains(hash) {
                                             next.wasm_hashes.insert(hash.clone());
-                                            print.infoln(format!(
-                                                "Adding wasm {} to search",
-                                                hex::encode(hash)
-                                            ));
+                                            print.infoln(format!("Adding wasm {hash} to search"));
                                         }
                                     }
                                     ScVal::ContractInstance(ScContractInstance {
@@ -321,8 +314,8 @@ impl Cmd {
                                         if let Some(name) =
                                             get_name_from_stellar_asset_contract_storage(storage)
                                         {
-                                            let asset: builder::Asset = name.parse()?;
-                                            if let Some(issuer) = match asset.into() {
+                                            let asset: xdr::Asset = name.parse()?;
+                                            if let Some(issuer) = match asset {
                                                 Asset::Native => None,
                                                 Asset::CreditAlphanum4(a4) => Some(a4.issuer),
                                                 Asset::CreditAlphanum12(a12) => Some(a12.issuer),

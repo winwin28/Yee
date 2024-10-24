@@ -109,7 +109,7 @@ impl From<&Cmd> for xdr::OperationBody {
             None
         };
         xdr::OperationBody::SetOptions(xdr::SetOptionsOp {
-            inflation_dest: cmd.inflation_dest.clone().map(Into::into),
+            inflation_dest: cmd.inflation_dest.as_ref().map(Into::into),
             clear_flags,
             set_flags,
             master_weight: cmd.master_weight.map(Into::into),

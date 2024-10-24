@@ -13,7 +13,7 @@ pub struct Cmd {
     pub config_locator: locator::Args,
 
     #[command(flatten)]
-    network: network::Args,
+    pub network: network::Args,
 
     /// The contract alias that will be displayed.
     pub alias: String,
@@ -41,22 +41,19 @@ impl Cmd {
         let network = self.network.get(&self.config_locator)?;
         let network_passphrase = &network.network_passphrase;
 
-        if let Some(contract) = self
+        let contract = self
             .config_locator
-            .get_contract_id(&self.alias, network_passphrase)?
-        {
-            print.infoln(format!(
-                "Contract alias '{alias}' references {contract} on network '{network_passphrase}'"
-            ));
-
-            println!("{contract}");
-
-            Ok(())
-        } else {
-            Err(Error::NoContract {
+            .get_contract_id(alias, network_passphrase)?
+            .ok_or_else(|| Error::NoContract {
                 alias: alias.into(),
                 network_passphrase: network_passphrase.into(),
-            })
-        }
+            })?;
+
+        print.infoln(format!(
+            "Contract alias '{alias}' references {contract} on network '{network_passphrase}'"
+        ));
+
+        println!("{contract}");
+        Ok(())
     }
 }

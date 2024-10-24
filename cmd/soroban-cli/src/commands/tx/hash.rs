@@ -1,6 +1,6 @@
 use hex;
 
-use crate::{commands::global, config::network, utils::transaction_hash};
+use crate::{commands::global, config::network};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -25,10 +25,7 @@ impl Cmd {
     pub fn run(&self, global_args: &global::Args) -> Result<(), Error> {
         let tx = super::xdr::unwrap_envelope_v1(super::xdr::tx_envelope_from_stdin()?)?;
         let network = &self.network.get(&global_args.locator)?;
-        println!(
-            "{}",
-            hex::encode(transaction_hash(&tx, &network.network_passphrase)?)
-        );
+        println!("{}", hex::encode(tx.hash(&network.network_passphrase)?));
         Ok(())
     }
 }

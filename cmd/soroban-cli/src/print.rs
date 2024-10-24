@@ -1,10 +1,8 @@
 use std::{env, fmt::Display};
 
-use crate::xdr::{Error as XdrError, Transaction};
+use crate::xdr::{Error as XdrError, Hash, HashBytes, Transaction};
 
-use crate::{
-    config::network::Network, utils::explorer_url_for_transaction, utils::transaction_hash,
-};
+use crate::{config::network::Network, utils::explorer_url_for_transaction};
 
 const TERMS: &[&str] = &["Apple_Terminal", "vscode"];
 
@@ -60,13 +58,12 @@ impl Print {
         network: &Network,
         show_link: bool,
     ) -> Result<(), XdrError> {
-        let tx_hash = transaction_hash(tx, &network.network_passphrase)?;
-        let hash = hex::encode(tx_hash);
+        let tx_hash = tx.hash(&network.network_passphrase)?;
 
-        self.infoln(format!("Transaction hash is {hash}").as_str());
+        self.infoln(format!("Transaction hash is {tx_hash}"));
 
         if show_link {
-            if let Some(url) = explorer_url_for_transaction(network, &hash) {
+            if let Some(url) = explorer_url_for_transaction(network, &tx_hash) {
                 self.linkln(url);
             }
         }
