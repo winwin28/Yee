@@ -244,7 +244,7 @@ fn contract_data_read_failure(sandbox: &TestEnv, id: &str) {
         .arg("--id")
         .arg(id)
         .arg("--key=COUNTER")
-        .arg("--durability=persistent")
+        // .arg("--durability=persistent")
         .assert()
         .failure()
         .stderr(
@@ -271,7 +271,7 @@ async fn contract_data_read() {
         .arg(id)
         .arg("--key")
         .arg(KEY)
-        .arg("--durability=persistent")
+        // .arg("--durability=persistent")
         .assert()
         .success()
         .stdout(predicates::str::starts_with("COUNTER,1"));
