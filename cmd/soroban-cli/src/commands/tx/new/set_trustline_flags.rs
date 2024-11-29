@@ -68,8 +68,8 @@ impl TryFrom<&Cmd> for xdr::OperationBody {
 
         Ok(xdr::OperationBody::SetTrustLineFlags(
             xdr::SetTrustLineFlagsOp {
-                trustor: cmd.tx.reslove_account_id(&cmd.trustor)?,
-                asset: cmd.tx.resolve_asset(&cmd.asset)?,
+                trustor: cmd.tx.reslove_account_id(&cmd.op.trustor)?,
+                asset: cmd.tx.resolve_asset(&cmd.op.asset)?,
                 clear_flags,
                 set_flags,
             },

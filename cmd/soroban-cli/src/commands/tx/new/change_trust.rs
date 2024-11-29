@@ -23,7 +23,7 @@ pub struct Args {
 impl TryFrom<&Cmd> for xdr::OperationBody {
     type Error = tx::args::Error;
     fn try_from(cmd: &Cmd) -> Result<Self, Self::Error> {
-        let asset = cmd.tx.resolve_asset(&cmd.line)?;
+        let asset = cmd.tx.resolve_asset(&cmd.op.line)?;
         let line = match asset {
             xdr::Asset::CreditAlphanum4(asset) => xdr::ChangeTrustAsset::CreditAlphanum4(asset),
             xdr::Asset::CreditAlphanum12(asset) => xdr::ChangeTrustAsset::CreditAlphanum12(asset),
@@ -31,7 +31,7 @@ impl TryFrom<&Cmd> for xdr::OperationBody {
         };
         Ok(xdr::OperationBody::ChangeTrust(xdr::ChangeTrustOp {
             line,
-            limit: cmd.limit,
+            limit: cmd.op.limit,
         }))
     }
 }

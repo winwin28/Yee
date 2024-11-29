@@ -29,9 +29,12 @@ impl TryFrom<&Cmd> for xdr::OperationBody {
     fn try_from(
         Cmd {
             tx,
-            destination,
-            asset,
-            amount,
+            op:
+                Args {
+                    destination,
+                    asset,
+                    amount,
+                },
         }: &Cmd,
     ) -> Result<Self, Self::Error> {
         Ok(xdr::OperationBody::Payment(xdr::PaymentOp {
