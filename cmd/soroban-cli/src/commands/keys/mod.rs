@@ -21,7 +21,9 @@ pub enum Cmd {
     /// Fund an identity on a test network
     Fund(fund::Cmd),
 
-    /// Generate a new identity with a seed phrase, currently 12 words
+    /// Generate a new identity with a seed phrase, currently 12 words.
+    ///
+    /// The identity's secret can be stored in a config file (default), in an OS-specific secure store, or be printed out to the console.
     Generate(generate::Cmd),
 
     /// List identities

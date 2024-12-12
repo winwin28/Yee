@@ -45,7 +45,7 @@ pub struct Args {
     #[arg(long, conflicts_with = "secret_key", conflicts_with = "secure_store")]
     pub seed_phrase: bool,
 
-    /// Add using secure store entry
+    /// Add using a key saved in a secure store entry. Requires the entry name to be provided with `--entry_name`
     #[arg(
         long,
         requires = "entry_name",
@@ -54,7 +54,7 @@ pub struct Args {
     )]
     pub secure_store: bool,
 
-    /// Name of the secure store entry
+    /// Name of the secure store entry, to be used with `--secure_store`
     #[arg(long, requires = "secure_store")]
     pub entry_name: Option<String>,
 }
