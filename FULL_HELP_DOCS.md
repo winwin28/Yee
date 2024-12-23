@@ -45,7 +45,7 @@ Anything after the `--` double dash (the "slop") is parsed as arguments to the c
 
 * `contract` — Tools for smart contract developers
 * `events` — Watch the network for contract events
-* `env` — Prints the current environment variables or defaults to the stdout, in a format that can be used as .env file. Environment variables have precedency over defaults
+* `env` — Prints the environment variables
 * `keys` — Create and manage identities including keys and addresses
 * `network` — Configure connection to networks
 * `container` — Start local networks in containers
@@ -915,7 +915,11 @@ Watch the network for contract events
 
 ## `stellar env`
 
-Prints the current environment variables or defaults to the stdout, in a format that can be used as .env file. Environment variables have precedency over defaults
+Prints the environment variables
+
+Prints to stdout in a format that can be used as .env file. Environment variables have precedence over defaults.
+
+If there are no environment variables in use, prints the defaults.
 
 **Usage:** `stellar env [OPTIONS]`
 
@@ -940,7 +944,7 @@ Create and manage identities including keys and addresses
 * `generate` — Generate a new identity with a seed phrase, currently 12 words
 * `ls` — List identities
 * `rm` — Remove an identity
-* `show` — Given an identity return its private key
+* `secret` — Output an identity's secret key
 * `use` — Set the default identity that will be used on all commands. This allows you to skip `--source-account` or setting a environment variable, while reusing this value in all commands that require it
 
 
@@ -957,8 +961,8 @@ Add a new identity (keypair, ledger, OS specific secure store)
 
 ###### **Options:**
 
-* `--secret-key` — Add using `secret_key` Can provide with `SOROBAN_SECRET_KEY`
-* `--seed-phrase` — Add using 12 word seed phrase to generate `secret_key`
+* `--secret-key` — (deprecated) Enter secret (S) key when prompted
+* `--seed-phrase` — (deprecated) Enter key using 12-24 word seed phrase
 * `--secure-store` — Add using a key saved in a secure store entry. Requires the entry name to be provided with `--entry_name`
 * `--entry-name <ENTRY_NAME>` — Name of the secure store entry, to be used with `--secure_store`
 * `--global` — Use global config
@@ -1070,11 +1074,11 @@ Remove an identity
 
 
 
-## `stellar keys show`
+## `stellar keys secret`
 
-Given an identity return its private key
+Output an identity's secret key
 
-**Usage:** `stellar keys show [OPTIONS] <NAME>`
+**Usage:** `stellar keys secret [OPTIONS] <NAME>`
 
 ###### **Arguments:**
 
