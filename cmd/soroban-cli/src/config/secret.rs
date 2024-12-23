@@ -40,12 +40,36 @@ pub struct Args {
     /// (deprecated) Enter key using 12-24 word seed phrase
     #[arg(long)]
     pub seed_phrase: bool,
+
+    /// Add using a key saved in a secure store entry. Requires the entry name to be provided with `--entry_name`
+    #[arg(
+        long,
+        requires = "entry_name",
+        conflicts_with = "seed_phrase",
+        conflicts_with = "secret_key"
+    )]
+    pub secure_store: bool,
+
+    /// Name of the secure store entry, to be used with `--secure_store`
+    #[arg(long, requires = "secure_store")]
+    pub entry_name: Option<String>,
 }
 
 impl Args {
     pub fn read_secret(&self) -> Result<Secret, Error> {
         if let Ok(secret_key) = std::env::var("SOROBAN_SECRET_KEY") {
             Ok(Secret::SecretKey { secret_key })
+        } else if self.secure_store {
+            let entry_name_with_prefix = format!(
+                "{}{}-{}",
+                keyring::SECURE_STORE_ENTRY_PREFIX,
+                keyring::SECURE_STORE_ENTRY_SERVICE,
+                self.entry_name.as_ref().unwrap()
+            );
+
+            Ok(Secret::SecureStore {
+                entry_name: entry_name_with_prefix,
+            })
         } else {
             println!("Type a secret key or 12/24 word seed phrase:");
             let secret_key = read_password()?;
