@@ -1,4 +1,7 @@
-use std::str::FromStr;
+use std::{
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
 use crate::xdr;
 
@@ -25,6 +28,12 @@ pub enum Error {
     Secret(#[from] secret::Error),
     #[error("Address cannot be used to sign {0}")]
     CannotSign(xdr::MuxedAccount),
+    #[error("Invalid key name: {0}\n only alphanumeric characters, underscores (_), and hyphens (-) are allowed.")]
+    InvalidKeyNameCharacters(String),
+    #[error("Invalid key name: {0}\n keys cannot exceed 250 characters")]
+    InvalidKeyNameLength(String),
+    #[error("Invalid key name: {0}\n keys cannot be the word \"ledger\"")]
+    InvalidKeyName(String),
 }
 
 impl FromStr for UnresolvedMuxedAccount {
@@ -72,4 +81,40 @@ impl UnresolvedMuxedAccount {
             UnresolvedMuxedAccount::AliasOrSecret(alias) => Ok(locator.read_identity(alias)?),
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct KeyName(pub String);
+
+impl std::ops::Deref for KeyName {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::str::FromStr for KeyName {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if !s.chars().all(allowed_char) {
+            return Err(Error::InvalidKeyNameCharacters(s.to_string()));
+        }
+        if s == "ledger" {
+            return Err(Error::InvalidKeyName(s.to_string()));
+        }
+        if s.len() > 250 {
+            return Err(Error::InvalidKeyNameLength(s.to_string()));
+        }
+        Ok(KeyName(s.to_string()))
+    }
+}
+
+impl Display for KeyName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+fn allowed_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_' || c == '-'
 }
